@@ -18,9 +18,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useForm } from "react-hook-form";
 import { OctagonAlertIcon } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
+
+import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -28,9 +30,9 @@ const formSchema = z.object({
 });
 
 const SignInView = () => {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<boolean>(false);
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -46,14 +48,39 @@ const SignInView = () => {
       {
         email: data.email,
         password: data.password,
+        callbackURL: "/",
       },
       {
         onSuccess: () => {
+          setPending(false);
+        },
+
+        onError: ({ error }) => {
+          setError(error.message);
+          setPending(false);
+        },
+      }
+    );
+    setPending(false);
+  };
+
+  const onSocial = async (provider: "github" | "google") => {
+    setError(null);
+    setPending(true);
+    await authClient.signIn.social(
+      {
+        provider: provider,
+        callbackURL: "/",
+      },
+      {
+        onSuccess: () => {
+          setPending(false);
           router.push("/");
         },
 
         onError: ({ error }) => {
           setError(error.message);
+          setPending(false);
         },
       }
     );
@@ -111,66 +138,67 @@ const SignInView = () => {
                     )}
                   />
                 </div>
-                  {!!error && (
-                    <Alert className="bg-destructive/10 border-none">
-                      <OctagonAlertIcon className="h-4 w-4 !text-destructive" />
-                      <AlertTitle className="text-destructive">
-                        {error}
-                      </AlertTitle>
-                    </Alert>
-                  )}
-                  <Button type="submit" className="w-full" disabled={pending}>
-                    Sign In
+                {!!error && (
+                  <Alert className="bg-destructive/10 border-none">
+                    <OctagonAlertIcon className="h-4 w-4 !text-destructive" />
+                    <AlertTitle className="text-destructive">
+                      {error}
+                    </AlertTitle>
+                  </Alert>
+                )}
+                <Button type="submit" className="w-full" disabled={pending}>
+                  Sign In
+                </Button>
+                <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:z-0 after:top-1/2 after:flex after:items-center after:border-t">
+                  <span className="bg-card text-muted-foreground relative z-10 px-2">
+                    or continue with
+                  </span>
+                </div>{" "}
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-center"
+                    disabled={pending}
+                    type="button"
+                    onClick={() => onSocial("google")}
+                  >
+                    <Image
+                      src="/google.svg"
+                      alt="Google logo"
+                      width={20}
+                      height={20}
+                      className="mr-2"
+                    />
+                    Google
                   </Button>
-
-                  <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:z-0 after:top-1/2 after:flex after:items-center after:border-t">
-                    <span className="bg-card text-muted-foreground relative z-10 px-2">
-                      or continue with
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Button
-                      variant="outline"
-                      className="w-full justify-center"
-                      disabled={pending}
+                  <Button
+                    variant="outline"
+                    className="w-full justify-center"
+                    disabled={pending}
+                    type="button"
+                    onClick={() => onSocial("github")}
+                  >
+                    <Image
+                      src="/github.svg"
+                      alt="GitHub logo"
+                      width={20}
+                      height={20}
+                      className="mr-2"
+                    />
+                    GitHub
+                  </Button>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Don&#39;t have an account?{" "}
+                    <Link
+                      href="/sign-up"
+                      className="text-primary hover:underline"
                     >
-                      <Image
-                        src="/google.svg"
-                        alt="Google logo"
-                        width={20}
-                        height={20}
-                        className="mr-2"
-                      />
-                      Google
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-center"
-                      disabled={pending}
-                    >
-                      <Image
-                        src="/github.svg"
-                        alt="GitHub logo"
-                        width={20}
-                        height={20}
-                        className="mr-2"
-                      />
-                      GitHub
-                    </Button>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Don&#39;t have an account?{" "}
-                      <Link
-                        href="/sign-up"
-                        className="text-primary hover:underline"
-                      >
-                        Sign Up
-                      </Link>
-                    </p>
-                  </div>
-                
+                      Sign Up
+                    </Link>
+                  </p>
+                </div>
               </div>
             </form>
           </Form>{" "}

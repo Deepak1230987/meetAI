@@ -18,9 +18,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useForm } from "react-hook-form";
 import { OctagonAlertIcon } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 const formSchema = z
   .object({
@@ -35,9 +36,9 @@ const formSchema = z
   });
 
 const SignUpView = () => {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<boolean>(false);
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -47,7 +48,6 @@ const SignUpView = () => {
       confirmPassword: "",
     },
   });
-
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setError(null);
     setPending(true);
@@ -59,11 +59,34 @@ const SignUpView = () => {
       },
       {
         onSuccess: () => {
+          // Redirect to home page after successful sign up
           router.push("/");
         },
 
         onError: ({ error }) => {
           setError(error.message);
+        },
+      }
+    );
+    setPending(false);
+  };
+
+  const onSocial = async (provider: "github" | "google") => {
+    setError(null);
+    setPending(true);
+    await authClient.signIn.social(
+      {
+        provider: provider,
+        callbackURL: "/",
+      },
+      {
+        onSuccess: () => {
+          setPending(false);
+        },
+
+        onError: ({ error }) => {
+          setError(error.message);
+          setPending(false);
         },
       }
     );
@@ -178,8 +201,10 @@ const SignUpView = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <Button
                     variant="outline"
+                    type="button"
                     className="w-full justify-center"
                     disabled={pending}
+                    onClick={() => onSocial("google")}
                   >
                     <Image
                       src="/google.svg"
@@ -192,8 +217,10 @@ const SignUpView = () => {
                   </Button>
                   <Button
                     variant="outline"
+                    type="button"
                     className="w-full justify-center"
                     disabled={pending}
+                    onClick={() => onSocial("github")}
                   >
                     <Image
                       src="/github.svg"
@@ -302,7 +329,7 @@ const SignUpView = () => {
       </Card>
 
       <div className="text-muted-foreground *:[a]:hover:text-primary text-balance text-center text-xs  *:[a]:underline *:[a]:underline-offset-4">
-        By clicking &quot;Sign In&quot;, you agree to our{" "}
+        By clicking &quot;Sign Up&quot;, you agree to our{" "}
         <Link href="/">
           <span className="text-primary hover:underline">Terms of Service</span>
         </Link>{" "}
