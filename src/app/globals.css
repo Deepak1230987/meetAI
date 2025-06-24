@@ -368,3 +368,10 @@
 .animate-grow-shrink {
   animation: grow-shrink 3s ease-in-out infinite;
 }
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
