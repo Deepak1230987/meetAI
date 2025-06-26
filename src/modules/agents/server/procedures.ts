@@ -1,22 +1,32 @@
 import { db } from "@/db";
 import { agents } from "@/db/schema";
-import { and, desc, eq, getTableColumns, ilike, sql,count } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, ilike, sql, count } from "drizzle-orm";
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
 import { agentsInsertSchema } from "../schema";
 import { z } from "zod";
 import { DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE } from "@/constants";
+import { TRPCError } from "@trpc/server";
 
 
 
 export const agentsRouter = createTRPCRouter({
     // todo: change "getone" to use "protectedprocedure"
-    getOne: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+    getOne: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input, ctx }) => {
         const [existingAgents] = await db.select({
             //todo: change to actual count
             meetingCount: sql<number>`5`,
             ...getTableColumns(agents),
 
-        }).from(agents).where(eq(agents.id, input.id));
+        }).from(agents).where(and(eq(agents.id, input.id),
+            eq(agents.userId, ctx.auth.user.id) 
+        ));
+if(!existingAgents) {
+    throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Agent not found",
+    })
+}
+
         return existingAgents;
     }),
     //todo: change "getmany" to use "protectedprocedure"
@@ -53,7 +63,7 @@ export const agentsRouter = createTRPCRouter({
                     search ? ilike(agents.name, `%${search}%`) : undefined
                 )
             );
-            const totalPages = Math.ceil(total.count/ pageSize);
+        const totalPages = Math.ceil(total.count / pageSize);
         return {
             items: data,
             total: total.count,
